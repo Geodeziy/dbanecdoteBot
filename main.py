@@ -181,9 +181,10 @@ async def restart(message: types.Message):
     import subprocess
     await message.reply('Перезагрузка...')
     script_path = os.path.abspath(sys.argv[0])
-    subprocess.Popen(['python', script_path])
-    # Linux
-    # subprocess.Popen(['python3', script_path])
+    if os.name == 'posix':
+        subprocess.Popen(['python3', script_path])
+    else:
+        subprocess.Popen(['python', script_path])
     sys.exit()
 
 

@@ -26,38 +26,37 @@ def creating_file():
                                                     'ram': {'volume': correct_size(psutil.virtual_memory().total),
                                                             'aviable': correct_size(psutil.virtual_memory().available),
                                                             'used': correct_size(psutil.virtual_memory().used)}}
-
-    for partition in psutil.disk_partitions():
-        try:
-            partition_usage = psutil.disk_usage(partition.mountpoint)
-        except PermissionError:
-            continue
-        if 'disk_info' not in collect_info_dict['info']:
-            collect_info_dict['info']['disk_info'] = dict()
-        if f"'device': {partition.device}" not in collect_info_dict['info']['disk_info']:
-            collect_info_dict['info']['disk_info'][partition.device] = dict()
-            collect_info_dict['info']['disk_info'][partition.device] = {'file_system': partition.fstype,
-                                                                        'size_total': correct_size(
-                                                                            partition_usage.total),
-                                                                        'size_used': correct_size(
-                                                                            partition_usage.used),
-                                                                        'size_free': correct_size(
-                                                                            partition_usage.free),
-                                                                        'percent':
-                                                                            f'{partition_usage.percent}'}
-
-    for interface_name, interface_address in psutil.net_if_addrs().items():
-        if interface_name == 'Loopback Pseudo-Interface 1':
-            continue
-        else:
-            if 'net_info' not in collect_info_dict['info']:
-                collect_info_dict['info']['net_info'] = dict()
-            if interface_name not in collect_info_dict['info']['net_info']:
-                collect_info_dict['info']['net_info'][interface_name] = dict()
-                collect_info_dict['info']['net_info'][interface_name] = {
-                    'mac': interface_address[0].address.replace("-", ":"),
-                    'ipv4': interface_address[1].address}
-
+    # for partition in psutil.disk_partitions():
+    #     try:
+    #         partition_usage = psutil.disk_usage(partition.mountpoint)
+    #     except PermissionError:
+    #         continue
+    #     if 'disk_info' not in collect_info_dict['info']:
+    #         collect_info_dict['info']['disk_info'] = dict()
+    #     if f"'device': {partition.device}" not in collect_info_dict['info']['disk_info']:
+    #         collect_info_dict['info']['disk_info'][partition.device] = dict()
+    #         collect_info_dict['info']['disk_info'][partition.device] = {'file_system': partition.fstype,
+    #                                                                     'size_total': correct_size(
+    #                                                                         partition_usage.total),
+    #                                                                     'size_used': correct_size(
+    #                                                                         partition_usage.used),
+    #                                                                     'size_free': correct_size(
+    #                                                                         partition_usage.free),
+    #                                                                     'percent':
+    #                                                                         f'{partition_usage.percent}'}
+    #
+    # for interface_name, interface_address in psutil.net_if_addrs().items():
+    #     if interface_name == 'Loopback Pseudo-Interface 1':
+    #         continue
+    #     else:
+    #         if 'net_info' not in collect_info_dict['info']:
+    #             collect_info_dict['info']['net_info'] = dict()
+    #         if interface_name not in collect_info_dict['info']['net_info']:
+    #             collect_info_dict['info']['net_info'][interface_name] = dict()
+    #             collect_info_dict['info']['net_info'][interface_name] = {
+    #                 'mac': interface_address[0].address.replace("-", ":"),
+    #                 'ipv4': interface_address[1].address}
+    #
     return collect_info_dict
 
 
