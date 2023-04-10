@@ -49,7 +49,7 @@ ban_id = [x.user_id for x in ban_id]
 async def ban_ids_updater():
     global ban_id
     while True:
-        async with aiofiles.open('files/bans_user.pkl', 'rb') as f:
+        async with aiofiles.open('files/ban_user.pkl', 'rb') as f:
             data = pickle.load(f)
         ban_id = data
         print(ban_id)
