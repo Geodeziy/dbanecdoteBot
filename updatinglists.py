@@ -18,7 +18,7 @@ async def main():
         bans_list = await update_list()
         print('Список значений:', bans_list)
         # Сохранение списка значений в файл для последующего импорта в другую программу
-        with open('files/bans_user.pkl', 'wb') as f:
+        with open('files/ban_user.pkl', 'wb') as f:
             pickle.dump(bans_list, f)
         await asyncio.sleep(10)
 
