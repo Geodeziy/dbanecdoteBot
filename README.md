@@ -1,3 +1,5 @@
+![https://img.shields.io/badge/Python-3.9.6-brightgreen](https://img.shields.io/badge/Python-3.9.6-brightgreen)
+
 # dbanectodeBot
 Телеграм-бот, написанный на Python с помощью библиотеки aiogram.
 
