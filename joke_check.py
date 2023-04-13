@@ -6,14 +6,11 @@ from re import sub, search
 
 morph = MorphAnalyzer()
 translator = Translator()
-with open('files/ban_words.json') as file_j:
-    data = json.load(file_j)
-ban_words = [d['word'] for d in data]
+with open('files/ban_words.json') as f:
+    ban_words = [d['word'] for d in json.load(f)]
 
-
-with open('files/ban_roots.json') as file_j:
-    data1 = json.load(file_j)
-ban_roots = [d for d in data1]
+with open('files/ban_roots.json') as f:
+    ban_roots = json.load(f)
 
 
 def simplify_word(word: str) -> str:
