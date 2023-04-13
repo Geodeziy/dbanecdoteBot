@@ -13,7 +13,7 @@ with open('files/ban_roots.json') as f:
     ban_roots = json.load(f)
 
 
-def simplify_word(word: str) -> str:
+def remove_duplicate_letters(word: str) -> str:
     last_letter = ''
     result = ''
     for letter in word:
@@ -24,7 +24,7 @@ def simplify_word(word: str) -> str:
 
 
 async def joke_check(message: str) -> bool:
-    msg_words = [simplify_word(word) for word in sub('[^A-Za-zА-Яа-яёЁ]+', ' ', message).split()]
+    msg_words = [remove_duplicate_letters(word) for word in re.sub('[^A-Za-zА-Яа-яёЁ]+', ' ', message).split()]
     for word in msg_words:
         if word == 'спам':
             continue
