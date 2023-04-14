@@ -17,11 +17,17 @@ from sqlalchemy.ext.asyncio import create_async_engine
 import aiofiles
 import aiohttp
 from aiogram.types.input_file import InputFile
+from aiogram.dispatcher.filters import Text
+from aiogram.utils.exceptions import MessageNotModified
+from aiogram.utils.callback_data import CallbackData
+
 from settings import BOT_TOKEN, ID
+import logging
 
 TOKEN = BOT_TOKEN
 bot = Bot(token=TOKEN)
 dp = Dispatcher(bot)
+logging.basicConfig(level=logging.INFO)
 
 engine = sqlalchemy.create_engine('sqlite:///j.db')
 Base = sqlalchemy.orm.declarative_base()
@@ -56,6 +62,14 @@ async def ban_ids_updater():
         await asyncio.sleep(30)
 
 
+@dp.callback_query_handler(text="translate_start")
+async def translate_start(call: types.CallbackQuery):
+    message_text = "I'm a joke bot, type /joke so I can send a joke. Type /add_joke <i>JOKE</i>" \
+                   " to have me add the joke to the database. All added jokes are moderated."
+    await call.message.edit_text(message_text, parse_mode=types.ParseMode.HTML)
+    await call.answer()
+
+
 @dp.message_handler(user_id=ban_id)  # Функция блокировки пользователя
 async def bans(message: types.Message):
     """Нужно перезапускать программу для обновления заблокированных пользователей"""
@@ -75,14 +89,20 @@ async def bans(message: types.Message):
 
 @dp.message_handler(commands=['help'])
 async def help_(message: types.Message):
-    if message.from_user.locale == 'ru':
-        message_text = 'Напишите /joke, чтобы я отправил шутку.\nНапишите /add_joke <i>ШУТКА</i>,' \
+    message_text = 'Напишите /joke, чтобы я отправил шутку.\nНапишите /add_joke <i>ШУТКА</i>,' \
                        ' чтобы я добавил шутку в базу данных. Все добавленные шутки проходят модерацию.'
-        await message.reply(message_text, parse_mode=types.ParseMode.HTML)
-    else:
-        message_text = 'Type /joke so I can send a joke.\nType /add_joke <i>JOKE</i>' \
-                       ' to have me add the joke to the database. All added jokes are moderated.'
-        await message.reply(message_text, parse_mode=types.ParseMode.HTML)
+
+    keyboard = types.InlineKeyboardMarkup()
+    keyboard.add(types.InlineKeyboardButton(text="In English", callback_data="translate_help"))
+    await message.reply(message_text, parse_mode=types.ParseMode.HTML, reply_markup=keyboard)
+
+
+@dp.callback_query_handler(text="translate_help")
+async def translate_help(call: types.CallbackQuery):
+    message_text = 'Type /joke so I can send a joke.\nType /add_joke <i>JOKE</i>' \
+                   ' to have me add the joke to the database. All added jokes are moderated.'
+    await call.message.edit_text(message_text, parse_mode=types.ParseMode.HTML)
+    await call.answer()
 
 
 @dp.message_handler(commands=['joke'])
