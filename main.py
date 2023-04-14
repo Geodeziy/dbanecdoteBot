@@ -169,7 +169,7 @@ async def send_random_kapibara(message: types.Message):
 @dp.message_handler(commands=['comp_info'])
 async def comp_info(message: types.Message):
     from about_s import creating_file, await_info, correct_size
-    dict_info = creating_file()
+    dict_info = await creating_file()
     await message.reply((await_info(dict_info) + f'[+] Размер базы данных\n\
                           \t- Размер: {correct_size(os.path.getsize(os.path.join(".", "j.db")))}\n'))
 

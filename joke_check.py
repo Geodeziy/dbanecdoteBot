@@ -3,64 +3,53 @@ from transliterate import translit
 from googletrans import Translator
 from pymorphy2 import MorphAnalyzer
 from re import sub, search
+import asyncio
 
 morph = MorphAnalyzer()
 translator = Translator()
-with open('files/ban_words.json') as f:
+with open('files/ban_words.json', encoding='UTF-8') as f:
     ban_words = [d['word'] for d in json.load(f)]
 
-with open('files/ban_roots.json') as f:
-    ban_roots = json.load(f)
+with open('files/ban_roots.json', encoding='UTF-8') as f:
+    ban_roots = [val for sublist in json.load(f).values() for val in sublist]
 
 
-def remove_duplicate_letters(word: str) -> str:
-    last_letter = ''
-    result = ''
-    for letter in word:
-        if letter != last_letter:
-            last_letter = letter
-            result += letter
-    return result.lower()
+def get_full_class_name(obj):
+    module = obj.__class__.__module__
+    if module is None or module == str.__class__.__module__:
+        return obj.__class__.__name__
+    return module + '.' + obj.__class__.__name__
 
 
-async def joke_check(message: str) -> bool:
-    msg_words = [remove_duplicate_letters(word) for word in re.sub('[^A-Za-zА-Яа-яёЁ]+', ' ', message).split()]
-    for word in msg_words:
-        if word == 'спам':
-            continue
-        word_r = translit(word, 'ru')
-        if word in ban_words or word_r in ban_words:
-            return True
-        for form in morph.normal_forms(word_r):
-            if form in ban_words:
+def remove_duplicate_letters(word):
+    return ''.join(letter.lower() for i, letter in enumerate(str(word)) if i == 0 or letter != str(word)[i - 1])
+
+
+async def joke_check(joke):
+    try:
+        joke_words = [remove_duplicate_letters(word) for word in sub(r'[^A-Za-z0-9А-Яа-я]', ' ', joke).split()]
+        for word in joke_words:
+            if word == 'спам':
+                continue
+            translit_word = translit(word, 'ru')
+            if any(elem in ban_words for elem in [word, translit_word] + list(translit_word.replace('ё', 'е'))):
                 return True
-        word_re = word_r.replace('ё', 'е')
-        if 'ё' in word_r:
-            for form in morph.normal_forms(word_re):
-                if form in ban_words:
-                    return True
-        for root in ban_roots:
-            if root in word or root in word_re:
-                return True
-        try:
             if not search('[а-яА-Я]', word):
-                word_t = translator.translate(word, 'ru').text
-                if word_t in ban_words:
+                if any(elem in ban_words for elem in [translator.translate(word, 'ru').text] +
+                                                     morph.normal_forms(translator.translate(word, 'ru').text)):
                     return True
-                for form in morph.normal_forms(word_t):
-                    if form in ban_words:
-                        return True
-                word_rt = word_r.replace('ё', 'е')
-                if 'ё' in word_r:
-                    for form in morph.normal_forms(word_rt):
-                        if form in ban_words:
-                            return True
-                for root in ban_roots:
-                    if root in word_t or root in word_rt:
-                        return True
-            else:
-                word_t = word
-        except Exception as e:
-            print('translate_error', e.__traceback__)
-            word_t = word
-            print(morph.normal_forms(word_t), morph.normal_forms(word_r), word_t, word_r, word)
+
+    except Exception as e:
+        print(get_full_class_name(e), e)
+
+
+# async def main():
+#     tasks = [
+#         asyncio.create_task(joke_check(''))
+#     ]
+#     c = await asyncio.gather(*tasks)
+#     print(c)
+#
+#
+# if __name__ == '__main__':
+#     asyncio.run(main())

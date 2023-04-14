@@ -10,7 +10,7 @@ def correct_size(bts, ending='iB'):
         bts /= size
 
 
-def creating_file():
+async def creating_file():
     collect_info_dict = dict()
     if 'info' not in collect_info_dict:
         collect_info_dict['info'] = dict()
