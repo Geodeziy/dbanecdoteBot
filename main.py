@@ -20,6 +20,9 @@ from aiogram.types.input_file import InputFile
 from aiogram.dispatcher.filters import Text
 from aiogram.utils.exceptions import MessageNotModified
 from aiogram.utils.callback_data import CallbackData
+from aiogram.utils.exceptions import MessageNotModified
+from contextlib import suppress
+
 
 from settings import BOT_TOKEN, ID
 import logging
@@ -64,10 +67,11 @@ async def ban_ids_updater():
 
 @dp.callback_query_handler(text="translate_start")
 async def translate_start(call: types.CallbackQuery):
-    message_text = "I'm a joke bot, type /joke so I can send a joke. Type /add_joke <i>JOKE</i>" \
-                   " to have me add the joke to the database. All added jokes are moderated."
-    await call.message.edit_text(message_text, parse_mode=types.ParseMode.HTML)
-    await call.answer()
+    with suppress(MessageNotModified):
+        message_text = "I'm a joke bot, type /joke so I can send a joke. Type /add_joke <i>JOKE</i>" \
+                       " to have me add the joke to the database. All added jokes are moderated."
+        await call.message.edit_text(message_text, parse_mode=types.ParseMode.HTML)
+        await call.answer()
 
 
 @dp.message_handler(user_id=ban_id)  # Функция блокировки пользователя
@@ -99,10 +103,11 @@ async def help_(message: types.Message):
 
 @dp.callback_query_handler(text="translate_help")
 async def translate_help(call: types.CallbackQuery):
-    message_text = 'Type /joke so I can send a joke.\nType /add_joke <i>JOKE</i>' \
-                   ' to have me add the joke to the database. All added jokes are moderated.'
-    await call.message.edit_text(message_text, parse_mode=types.ParseMode.HTML)
-    await call.answer()
+    with suppress(MessageNotModified):
+        message_text = 'Type /joke so I can send a joke.\nType /add_joke <i>JOKE</i>' \
+                       ' to have me add the joke to the database. All added jokes are moderated.'
+        await call.message.edit_text(message_text, parse_mode=types.ParseMode.HTML)
+        await call.answer()
 
 
 @dp.message_handler(commands=['joke'])
