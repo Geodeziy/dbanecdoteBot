@@ -124,14 +124,18 @@ async def joke(message: types.Message):
     if message.from_user.locale == 'ru':
         await message.reply(m.joke)
     else:  # Перевод шутки на язык пользователя, установленный в Telegram.
+        if m.english_joke:  # Проверка на наличие английского перевода шутки
+            joke_to_translate = m.english_joke
+        else:
+            joke_to_translate = m.joke
         try:
             from googletrans import Translator
             translator = Translator()
-            t = translator.translate(m.joke, dest=f'{message.from_user.locale}')
+            t = translator.translate(joke_to_translate, dest=f'{message.from_user.locale}')
             await message.reply(t.text)
         except Exception as e:  # Запасной переводчик
             print(get_full_class_name(e), e)
-            await message.reply(translation(m.joke, message.from_user.locale))
+            await message.reply(translation(joke_to_translate, message.from_user.locale))
 
 
 @dp.message_handler(commands=['add_joke'])
@@ -180,7 +184,7 @@ async def send_random_kapibara(message: types.Message):
         response = requests.get(url, headers=headers)
         # Получение результатов
         results = json.loads(response.text)["results"]
-        # Получение URL первой фотографии
+        # Получение URL случайной фотографии
         photo_url = results[randint(0, len(results) - 1)]["urls"]["regular"]
         await bot.send_photo(chat_id=message.from_user.id, photo=photo_url, reply_to_message_id=message.message_id)
     except Exception as e:
