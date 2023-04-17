@@ -189,8 +189,8 @@ async def send_random_capibara(message: types.Message):
         photo_url = photo["urls"]["regular"]
         photographer_name = photo["user"]["name"]
         # Отправка сообщения с фотографией и информацией об авторе
-        await bot.send_photo(chat_id=message.from_user.id, photo=photo_url, caption=f"Photo by {photographer_name}",
-                             reply_to_message_id=message.message_id)
+        await bot.send_photo(chat_id=message.from_user.id, photo=photo_url, caption=f'Photo by {photographer_name} on <a href="https://unsplash.com/">Unsplash</a>.',
+                             reply_to_message_id=message.message_id, parse_mode=types.ParseMode.HTML)
 
     except Exception as e:
         print(e)
