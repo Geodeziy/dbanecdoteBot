@@ -23,7 +23,6 @@ from aiogram.utils.callback_data import CallbackData
 from aiogram.utils.exceptions import MessageNotModified
 from contextlib import suppress
 
-
 from settings import BOT_TOKEN, ID
 import logging
 
@@ -43,13 +42,23 @@ def get_full_class_name(obj):
     return module + '.' + obj.__class__.__name__
 
 
-# ban_id = []
+ban_id = []
 
 Session = sessionmaker(bind=engine)
 session = Session()
 ban_id = session.query(Bans).all()
 session.commit()
 ban_id = [x.user_id for x in ban_id]
+
+
+@dp.callback_query_handler(text="translate_start")
+async def translate_start(call: types.CallbackQuery):
+    with suppress(MessageNotModified):
+        message_text = "I'm a joke bot, type /joke so I can send a joke. Type /add_joke <i>JOKE</i>" \
+                       " to have me add the joke to the database. All added jokes are moderated."
+        await call.message.edit_text(message_text, parse_mode=types.ParseMode.HTML)
+        await call.answer()
+
 
 """Функция должна была считывать файл bans_user.pkl каждые 30 секунд
  и обновлять список ban_id"""
@@ -65,36 +74,29 @@ async def ban_ids_updater():
         await asyncio.sleep(30)
 
 
-@dp.callback_query_handler(text="translate_start")
-async def translate_start(call: types.CallbackQuery):
-    with suppress(MessageNotModified):
-        message_text = "I'm a joke bot, type /joke so I can send a joke. Type /add_joke <i>JOKE</i>" \
-                       " to have me add the joke to the database. All added jokes are moderated."
-        await call.message.edit_text(message_text, parse_mode=types.ParseMode.HTML)
-        await call.answer()
-
-
-@dp.message_handler(user_id=ban_id)  # Функция блокировки пользователя
+@dp.message_handler()  # Функция блокировки пользователя
 async def bans(message: types.Message):
     """Нужно перезапускать программу для обновления заблокированных пользователей"""
     from translate import translation
-    if message.from_user.locale == 'ru':
-        await message.reply('Вы заблокированы.')
-    else:  # Перевод сообщения о блокировке на язык пользователя, установленный в Telegram.
-        try:
-            from googletrans import Translator
-            translator = Translator()
-            t = translator.translate('You are blocked.', dest=f'{message.from_user.locale}')
-            await message.reply(t.text)
-        except Exception as e:  # Запасной переводчик
-            print(get_full_class_name(e), e)
-            await message.reply(translation('You are blocked.', message.from_user.locale))
+    global ban_id
+    if message.from_user.id in ban_id:
+        if message.from_user.locale == 'ru':
+            await message.reply('Вы заблокированы.')
+        else:  # Перевод сообщения о блокировке на язык пользователя, установленный в Telegram.
+            try:
+                from googletrans import Translator
+                translator = Translator()
+                t = translator.translate('You are blocked.', dest=f'{message.from_user.locale}')
+                await message.reply(t.text)
+            except Exception as e:  # Запасной переводчик
+                print(get_full_class_name(e), e)
+                await message.reply(translation('You are blocked.', message.from_user.locale))
 
 
 @dp.message_handler(commands=['help'])
 async def help_(message: types.Message):
     message_text = 'Напишите /joke, чтобы я отправил шутку.\nНапишите /add_joke <i>ШУТКА</i>,' \
-                       ' чтобы я добавил шутку в базу данных. Все добавленные шутки проходят модерацию.'
+                   ' чтобы я добавил шутку в базу данных. Все добавленные шутки проходят модерацию.'
 
     keyboard = types.InlineKeyboardMarkup()
     keyboard.add(types.InlineKeyboardButton(text="In English", callback_data="translate_help"))
