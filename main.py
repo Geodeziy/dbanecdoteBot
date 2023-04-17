@@ -167,7 +167,7 @@ async def download_image(url: str) -> bytes:
 
 
 @dp.message_handler(commands=['capybara'])
-async def send_random_kapibara(message: types.Message):
+async def send_random_capibara(message: types.Message):
     import requests
     from settings import UNSPLASH_TOKEN
     try:
@@ -185,8 +185,13 @@ async def send_random_kapibara(message: types.Message):
         # Получение результатов
         results = json.loads(response.text)["results"]
         # Получение URL случайной фотографии
-        photo_url = results[randint(0, len(results) - 1)]["urls"]["regular"]
-        await bot.send_photo(chat_id=message.from_user.id, photo=photo_url, reply_to_message_id=message.message_id)
+        photo = results[randint(0, len(results) - 1)]
+        photo_url = photo["urls"]["regular"]
+        photographer_name = photo["user"]["name"]
+        # Отправка сообщения с фотографией и информацией об авторе
+        await bot.send_photo(chat_id=message.from_user.id, photo=photo_url, caption=f"Photo by {photographer_name}",
+                             reply_to_message_id=message.message_id)
+
     except Exception as e:
         print(e)
         photo = open('capybara.png', 'rb')
