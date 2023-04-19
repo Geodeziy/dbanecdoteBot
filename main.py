@@ -167,7 +167,7 @@ async def download_image(url: str) -> bytes:
 
 
 @dp.message_handler(commands=['capybara'])
-async def send_random_capibara(message: types.Message):
+async def send_random_capybara(message: types.Message):
     import requests
     from settings import UNSPLASH_TOKEN
     try:
