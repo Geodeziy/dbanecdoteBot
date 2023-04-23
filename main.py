@@ -50,7 +50,7 @@ session = Session()
 ban_id = session.query(Bans).all()
 session.commit()
 ban_id = [x.user_id for x in ban_id]
-jokes_dict = {}
+
 """Функция должна была считывать файл bans_user.pkl каждые 30 секунд
  и обновлять список ban_id"""
 
@@ -122,7 +122,6 @@ async def joke(message: types.Message):
         await message.reply('К сожалению, нет доступных шуток.')
         return
     m = result[randint(0, len(result) - 1)]
-    jokes_dict[message.message_id] = m
     if message.from_user.locale == 'ru':
         await message.reply(m.joke)
     else:  # Перевод шутки на язык пользователя, установленный в Telegram.
