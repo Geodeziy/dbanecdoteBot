@@ -12,14 +12,10 @@ import asyncio
 import pickle
 from aiogram.utils.markdown import text, bold, italic, code, pre
 from aiogram.types import ParseMode, InputMediaPhoto, InputMediaVideo, ChatActions
-import aiosqlite
-from sqlalchemy.ext.asyncio import create_async_engine
 import aiofiles
 import aiohttp
 from aiogram.types.input_file import InputFile
 from aiogram.dispatcher.filters import Text
-from aiogram.utils.exceptions import MessageNotModified
-from aiogram.utils.callback_data import CallbackData
 from aiogram.utils.exceptions import MessageNotModified
 from contextlib import suppress
 
