@@ -50,7 +50,7 @@ session = Session()
 ban_id = session.query(Bans).all()
 session.commit()
 ban_id = [x.user_id for x in ban_id]
-
+jokes_dict = {}
 """Функция должна была считывать файл bans_user.pkl каждые 30 секунд
  и обновлять список ban_id"""
 
@@ -114,6 +114,7 @@ async def translate_help(call: types.CallbackQuery):
 async def joke(message: types.Message):
     from sqlalchemy.orm import sessionmaker
     from translate import translation
+    global m
     Session = sessionmaker(bind=engine)
     session = Session()
     result = session.query(Joke).filter(Joke.allowed == 'True').all()
@@ -121,6 +122,7 @@ async def joke(message: types.Message):
         await message.reply('К сожалению, нет доступных шуток.')
         return
     m = result[randint(0, len(result) - 1)]
+    jokes_dict[message.message_id] = m
     if message.from_user.locale == 'ru':
         await message.reply(m.joke)
     else:  # Перевод шутки на язык пользователя, установленный в Telegram.
@@ -132,10 +134,27 @@ async def joke(message: types.Message):
             from googletrans import Translator
             translator = Translator()
             t = translator.translate(joke_to_translate, dest=f'{message.from_user.locale}')
-            await message.reply(t.text)
+            keyboard = types.InlineKeyboardMarkup()
+            keyboard.add(types.InlineKeyboardButton(text="Original joke", callback_data=f"original_joke_{m.id}"))
+            await message.reply(t.text, reply_markup=keyboard)
         except Exception as e:  # Запасной переводчик
             print(get_full_class_name(e), e)
-            await message.reply(translation(joke_to_translate, message.from_user.locale))
+            keyboard = types.InlineKeyboardMarkup()
+            keyboard.add(types.InlineKeyboardButton(text="Original joke", callback_data=f"original_joke_{m.id}"))
+            await message.reply(translation(joke_to_translate, message.from_user.locale), reply_markup=keyboard)
+
+
+@dp.callback_query_handler(lambda c: c.data.startswith('original_joke_'))
+async def original_joke(call: types.CallbackQuery):
+    """Функция меняет переведённую шутку на записанную в базу данных"""
+    with suppress(MessageNotModified):
+        joke_id = call.data.split('_')[-1]
+        Session = sessionmaker(bind=engine)
+        session = Session()
+        joke = session.query(Joke).filter(Joke.id == joke_id).one()
+        message_text = joke.joke
+        await call.message.edit_text(message_text, parse_mode=types.ParseMode.HTML)
+        await call.answer()
 
 
 @dp.message_handler(commands=['add_joke'])
@@ -176,7 +195,6 @@ async def send_random_capybara(message: types.Message):
         orientation = "landscape"
         # URL для запроса
         url = f"https://api.unsplash.com/search/photos?query={query}&orientation={orientation}"
-        # Заголовки для авторизации запроса
         headers = {
             "Authorization": f"Client-ID {access_key}"
         }
@@ -189,7 +207,8 @@ async def send_random_capybara(message: types.Message):
         photo_url = photo["urls"]["regular"]
         photographer_name = photo["user"]["name"]
         # Отправка сообщения с фотографией и информацией об авторе
-        await bot.send_photo(chat_id=message.from_user.id, photo=photo_url, caption=f'Photo by {photographer_name} on <a href="https://unsplash.com/">Unsplash</a>.',
+        await bot.send_photo(chat_id=message.from_user.id, photo=photo_url,
+                             caption=f'Photo by {photographer_name} on <a href="https://unsplash.com/">Unsplash</a>.',
                              reply_to_message_id=message.message_id, parse_mode=types.ParseMode.HTML)
 
     except Exception as e:
