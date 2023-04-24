@@ -74,17 +74,17 @@ async def translate_start(call: types.CallbackQuery):
 async def bans(message: types.Message):
     """Нужно перезапускать программу для обновления заблокированных пользователей"""
     from translate import translation
-    if message.from_user.locale == 'ru':
+    if message.from_user.language_code == 'ru':
         await message.reply('Вы заблокированы.')
     else:  # Перевод сообщения о блокировке на язык пользователя, установленный в Telegram.
         try:
             from googletrans import Translator
             translator = Translator()
-            t = translator.translate('You are blocked.', dest=f'{message.from_user.locale}')
+            t = translator.translate('You are blocked.', dest=f'{message.from_user.language_code}')
             await message.reply(t.text)
         except Exception as e:  # Запасной переводчик
             print(get_full_class_name(e), e)
-            await message.reply(translation('You are blocked.', message.from_user.locale))
+            await message.reply(translation('You are blocked.', message.from_user.language_code))
 
 
 @dp.message_handler(commands=['help'])
@@ -118,7 +118,7 @@ async def joke(message: types.Message):
         await message.reply('К сожалению, нет доступных шуток.')
         return
     m = result[randint(0, len(result) - 1)]
-    if message.from_user.locale == 'ru':
+    if message.from_user.language_code == 'ru':
         await message.reply(m.joke)
     else:  # Перевод шутки на язык пользователя, установленный в Telegram.
         if m.english_joke:  # Проверка на наличие английского перевода шутки
@@ -128,7 +128,7 @@ async def joke(message: types.Message):
         try:
             from googletrans import Translator
             translator = Translator()
-            t = translator.translate(joke_to_translate, dest=f'{message.from_user.locale}')
+            t = translator.translate(joke_to_translate, dest=f'{message.from_user.language_code}')
             keyboard = types.InlineKeyboardMarkup()
             keyboard.add(types.InlineKeyboardButton(text="Original joke", callback_data=f"original_joke_{m.id}"))
             await message.reply(t.text, reply_markup=keyboard)
@@ -136,7 +136,7 @@ async def joke(message: types.Message):
             print(get_full_class_name(e), e)
             keyboard = types.InlineKeyboardMarkup()
             keyboard.add(types.InlineKeyboardButton(text="Original joke", callback_data=f"original_joke_{m.id}"))
-            await message.reply(translation(joke_to_translate, message.from_user.locale), reply_markup=keyboard)
+            await message.reply(translation(joke_to_translate, message.from_user.language_code), reply_markup=keyboard)
 
 
 @dp.callback_query_handler(lambda c: c.data.startswith('original_joke_'))
@@ -160,10 +160,16 @@ async def add_joke(message: types.Message):
     session = Session()
     s = message.get_args()
     if not s:
-        await message.reply('Шутка не передана.')
+        if message.from_user.language_code == 'ru':
+            await message.reply('Шутка не передана.')
+        else:
+            await message.reply('The joke was not sent.')
     else:
         if await joke_check(s):
-            await message.reply('В вашей шутке содержится обсценная лексика.')
+            if message.from_user.language_code == 'ru':
+                await message.reply('В вашей шутке содержится обсценная лексика.')
+            else:
+                await message.reply('Your joke contains obscene language.')
         else:
             joke = Joke()
             joke.joke = s
@@ -171,7 +177,10 @@ async def add_joke(message: types.Message):
             joke.allowed = 'False'  # Одобрение происходит вручную
             session.add(joke)
             session.commit()
-            await message.reply('Шутка добавлена в базу данных, и будет промодерирована.')
+            if message.from_user.language_code == 'ru':
+                await message.reply('Шутка добавлена в базу данных, и будет промодерирована.')
+            else:
+                await message.reply('The joke has been added to the database and will be moderated.')
 
 
 async def download_image(url: str) -> bytes:
@@ -209,9 +218,11 @@ async def send_random_capybara(message: types.Message):
     except Exception as e:
         print(e)
         photo = open('capybara.png', 'rb')
-        await bot.send_photo(message.from_user.id, photo=photo, caption='Изображения не нашлись,'
-                                                                        ' но есть такая картинка капибары в космосе.',
-                             reply_to_message_id=message.message_id)
+        if message.from_user.language_code == 'ru':
+            c = 'Изображения не нашлись, но есть такая картинка капибары в космосе.'
+        else:
+            c = 'Images were not found, but there is such a picture of a capybara in space.'
+        await bot.send_photo(message.from_user.id, photo=photo, caption=c, reply_to_message_id=message.message_id)
 
 
 @dp.message_handler(commands=['comp_info'])
