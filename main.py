@@ -3,7 +3,7 @@ from aiogram.dispatcher import Dispatcher
 from aiogram.utils import executor
 import sqlalchemy
 import os
-from random import randint, choice
+from random import randint
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 import json
@@ -63,6 +63,7 @@ async def ban_ids_updater():
 
 @dp.callback_query_handler(text="translate_start")
 async def translate_start(call: types.CallbackQuery):
+    """Функция, которая изменяет сообщение, отправляемое командой start."""
     with suppress(MessageNotModified):
         message_text = "I'm a joke bot, type /joke so I can send a joke. Type /add_joke <i>JOKE</i>" \
                        " to have me add the joke to the database. All added jokes are moderated."
@@ -72,7 +73,7 @@ async def translate_start(call: types.CallbackQuery):
 
 @dp.message_handler(user_id=ban_id)  # Функция блокировки пользователя
 async def bans(message: types.Message):
-    """Нужно перезапускать программу для обновления заблокированных пользователей"""
+    """Нужно перезапускать программу для обновления заблокированных пользователей."""
     from translate import translation
     if message.from_user.language_code == 'ru':
         await message.reply('Вы заблокированы.')
@@ -89,6 +90,7 @@ async def bans(message: types.Message):
 
 @dp.message_handler(commands=['help'])
 async def help_(message: types.Message):
+    """Команда для вывода справочной информации."""
     message_text = 'Напишите /joke, чтобы я отправил шутку.\nНапишите /add_joke <i>ШУТКА</i>,' \
                        ' чтобы я добавил шутку в базу данных. Все добавленные шутки проходят модерацию.'
 
@@ -99,6 +101,7 @@ async def help_(message: types.Message):
 
 @dp.callback_query_handler(text="translate_help")
 async def translate_help(call: types.CallbackQuery):
+    """Функция, которая изменяет сообщение, отправляемое командой help."""
     with suppress(MessageNotModified):
         message_text = 'Type /joke so I can send a joke.\nType /add_joke <i>JOKE</i>' \
                        ' to have me add the joke to the database. All added jokes are moderated.'
@@ -108,6 +111,7 @@ async def translate_help(call: types.CallbackQuery):
 
 @dp.message_handler(commands=['joke'])
 async def joke(message: types.Message):
+    """Функция отправляет шутку из базы данных."""
     from sqlalchemy.orm import sessionmaker
     from translate import translation
     global m
@@ -141,7 +145,7 @@ async def joke(message: types.Message):
 
 @dp.callback_query_handler(lambda c: c.data.startswith('original_joke_'))
 async def original_joke(call: types.CallbackQuery):
-    """Функция меняет переведённую шутку на записанную в базу данных"""
+    """Функция меняет переведённую шутку на записанную в базу данных."""
     with suppress(MessageNotModified):
         joke_id = call.data.split('_')[-1]
         Session = sessionmaker(bind=engine)
@@ -154,6 +158,7 @@ async def original_joke(call: types.CallbackQuery):
 
 @dp.message_handler(commands=['add_joke'])
 async def add_joke(message: types.Message):
+    """Функция добавляет шутку в базу данных."""
     from sqlalchemy.orm import sessionmaker
     from joke_check import joke_check
     Session = sessionmaker(bind=engine)
@@ -183,14 +188,9 @@ async def add_joke(message: types.Message):
                 await message.reply('The joke has been added to the database and will be moderated.')
 
 
-async def download_image(url: str) -> bytes:
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url) as response:
-            return await response.read()
-
-
 @dp.message_handler(commands=['capybara'])
 async def send_random_capybara(message: types.Message):
+    """Вывод изображения капибары."""
     import requests
     from settings import UNSPLASH_TOKEN
     try:
@@ -215,7 +215,7 @@ async def send_random_capybara(message: types.Message):
                              caption=f'Photo by {photographer_name} on <a href="https://unsplash.com/">Unsplash</a>.',
                              reply_to_message_id=message.message_id, parse_mode=types.ParseMode.HTML)
 
-    except Exception as e:
+    except Exception as e:  # Если произошла ошибка, то выводим заранее заготовленное изображение
         print(e)
         photo = open('capybara.png', 'rb')
         if message.from_user.language_code == 'ru':
@@ -227,6 +227,7 @@ async def send_random_capybara(message: types.Message):
 
 @dp.message_handler(commands=['comp_info'])
 async def comp_info(message: types.Message):
+    """Вывод информации о системе, на которой запущена программа."""
     from about_s import creating_file, await_info, correct_size
     dict_info = await creating_file()
     if os.name == 'posix':
