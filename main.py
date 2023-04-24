@@ -18,7 +18,7 @@ from aiogram.types.input_file import InputFile
 from aiogram.dispatcher.filters import Text
 from aiogram.utils.exceptions import MessageNotModified
 from contextlib import suppress
-
+import psutil
 
 from settings import BOT_TOKEN, ID
 import logging
@@ -229,7 +229,13 @@ async def send_random_capybara(message: types.Message):
 async def comp_info(message: types.Message):
     from about_s import creating_file, await_info, correct_size
     dict_info = await creating_file()
-    await message.reply((await_info(dict_info) + f'[+] Размер базы данных\n\
+    if os.name == 'posix':
+        temperature = psutil.sensors_temperatures()
+        await message.reply((await_info(dict_info) + f'[+] Размер базы данных\n\
+                                  \t- Размер: {correct_size(os.path.getsize(os.path.join(".", "j.db")))}\n' +
+                             f'[+] Температура процессора\n\t- Температура: {temperature}'))
+    else:
+        await message.reply((await_info(dict_info) + f'[+] Размер базы данных\n\
                           \t- Размер: {correct_size(os.path.getsize(os.path.join(".", "j.db")))}\n'))
 
 
