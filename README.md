@@ -1,7 +1,7 @@
 ![https://img.shields.io/badge/Python-3.9.6-brightgreen](https://img.shields.io/badge/Python-3.9.6-brightgreen?style=flat-square&logo=python)
 ![https://img.shields.io/badge/aiogram-2.25.1-orange](https://img.shields.io/badge/aiogram-2.25.1-orange?style=flat-square)
 
-# dbanectodeBot
+# dbanecdoteBot
 Телеграм-бот, написанный на Python с помощью библиотеки aiogram.
 
   `main.py` - основной файл бота, в нём происходят запуск и работа команд бота.
