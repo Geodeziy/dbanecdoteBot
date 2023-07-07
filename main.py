@@ -234,7 +234,8 @@ async def comp_info(message: types.Message):
         temperature = psutil.sensors_temperatures()
         await message.reply((await_info(dict_info) + f'[+] Размер базы данных\n\
                                   \t- Размер: {correct_size(os.path.getsize(os.path.join(".", "j.db")))}\n' +
-                             f'[+] Температура процессора\n\t- Температура: {temperature}'))
+                             f'[+] Температура процессора\n\
+                             \t- Температура: {temperature["cpu_thermal"][0].current}°C'))
     else:
         await message.reply((await_info(dict_info) + f'[+] Размер базы данных\n\
                           \t- Размер: {correct_size(os.path.getsize(os.path.join(".", "j.db")))}\n'))
