@@ -1,6 +1,5 @@
-from aiogram import Bot, types
-from aiogram.dispatcher import Dispatcher
-from aiogram.utils import executor
+from aiogram import Bot, Dispatcher, types, html, F, Router
+from aiogram.filters import Command, CommandObject
 import sqlalchemy
 import os
 from random import randint
@@ -11,21 +10,24 @@ from joke_bans import Joke, Bans
 import asyncio
 import pickle
 from aiogram.utils.markdown import text, bold, italic, code, pre
-from aiogram.types import ParseMode, InputMediaPhoto, InputMediaVideo, ChatActions
+# from aiogram.types import ParseMode, InputMediaPhoto, InputMediaVideo, ChatActions
+from aiogram.types import FSInputFile, URLInputFile, BufferedInputFile
 import aiofiles
 import aiohttp
 from aiogram.types.input_file import InputFile
-from aiogram.dispatcher.filters import Text
-from aiogram.utils.exceptions import MessageNotModified
+from aiogram.exceptions import TelegramBadRequest
+from aiogram.utils.keyboard import InlineKeyboardBuilder
 from contextlib import suppress
 import psutil
 
 from settings import BOT_TOKEN, ID
 import logging
+from handlers import start, bansrouter
+from middlewares.bans import BansMiddleware
 
 TOKEN = BOT_TOKEN
 bot = Bot(token=TOKEN)
-dp = Dispatcher(bot)
+dp = Dispatcher()
 logging.basicConfig(level=logging.INFO)
 
 engine = sqlalchemy.create_engine('sqlite:///j.db')
@@ -38,8 +40,6 @@ def get_full_class_name(obj):
         return obj.__class__.__name__
     return module + '.' + obj.__class__.__name__
 
-
-# ban_id = []
 
 Session = sessionmaker(bind=engine)
 session = Session()
@@ -61,55 +61,55 @@ async def ban_ids_updater():
         await asyncio.sleep(30)
 
 
-@dp.callback_query_handler(text="translate_start")
+@dp.callback_query(F.text("translate_start"))
 async def translate_start(call: types.CallbackQuery):
     """Функция, которая изменяет сообщение, отправляемое командой start."""
-    with suppress(MessageNotModified):
+    with suppress(TelegramBadRequest):
         message_text = "I'm a joke bot, type /joke so I can send a joke. Type /add_joke <i>JOKE</i>" \
                        " to have me add the joke to the database. All added jokes are moderated."
-        await call.message.edit_text(message_text, parse_mode=types.ParseMode.HTML)
+        await call.message.edit_text(message_text, parse_mode="HTML")
         await call.answer()
 
 
-@dp.message_handler(user_id=ban_id)  # Функция блокировки пользователя
-async def bans(message: types.Message):
-    """Нужно перезапускать программу для обновления заблокированных пользователей."""
-    from translate import translation
-    if message.from_user.language_code == 'ru':
-        await message.reply('Вы заблокированы.')
-    else:  # Перевод сообщения о блокировке на язык пользователя, установленный в Telegram.
-        try:
-            from googletrans import Translator
-            translator = Translator()
-            t = translator.translate('You are blocked.', dest=f'{message.from_user.language_code}')
-            await message.reply(t.text)
-        except Exception as e:  # Запасной переводчик
-            print(get_full_class_name(e), e)
-            await message.reply(translation('You are blocked.', message.from_user.language_code))
+# @dp.message(user_id=ban_id)  # Функция блокировки пользователя
+# async def bans(message: types.Message):
+#     """Нужно перезапускать программу для обновления заблокированных пользователей."""
+#     from translate import translation
+#     if message.from_user.language_code == 'ru':
+#         await message.reply('Вы заблокированы.')
+#     else:  # Перевод сообщения о блокировке на язык пользователя, установленный в Telegram.
+#         try:
+#             from googletrans import Translator
+#             translator = Translator()
+#             t = translator.translate('You are blocked.', dest=f'{message.from_user.language_code}')
+#             await message.reply(t.text)
+#         except Exception as e:  # Запасной переводчик
+#             print(get_full_class_name(e), e)
+#             await message.reply(translation('You are blocked.', message.from_user.language_code))
 
 
-@dp.message_handler(commands=['help'])
+@dp.message(Command('help'))
 async def help_(message: types.Message):
     """Команда для вывода справочной информации."""
     message_text = 'Напишите /joke, чтобы я отправил шутку.\nНапишите /add_joke <i>ШУТКА</i>,' \
                        ' чтобы я добавил шутку в базу данных. Все добавленные шутки проходят модерацию.'
 
-    keyboard = types.InlineKeyboardMarkup()
+    keyboard = InlineKeyboardBuilder()
     keyboard.add(types.InlineKeyboardButton(text="In English", callback_data="translate_help"))
-    await message.reply(message_text, parse_mode=types.ParseMode.HTML, reply_markup=keyboard)
+    await message.reply(message_text, parse_mode="HTML", reply_markup=keyboard.as_markup())
 
 
-@dp.callback_query_handler(text="translate_help")
+@dp.callback_query(F.text("translate_help"))
 async def translate_help(call: types.CallbackQuery):
     """Функция, которая изменяет сообщение, отправляемое командой help."""
-    with suppress(MessageNotModified):
+    with suppress(TelegramBadRequest):
         message_text = 'Type /joke so I can send a joke.\nType /add_joke <i>JOKE</i>' \
                        ' to have me add the joke to the database. All added jokes are moderated.'
-        await call.message.edit_text(message_text, parse_mode=types.ParseMode.HTML)
+        await call.message.edit_text(message_text, parse_mode="HTML")
         await call.answer()
 
 
-@dp.message_handler(commands=['joke'])
+@dp.message(Command('joke'))
 async def joke(message: types.Message):
     """Функция отправляет шутку из базы данных."""
     from sqlalchemy.orm import sessionmaker
@@ -133,37 +133,39 @@ async def joke(message: types.Message):
             from googletrans import Translator
             translator = Translator()
             t = translator.translate(joke_to_translate, dest=f'{message.from_user.language_code}')
-            keyboard = types.InlineKeyboardMarkup()
+            keyboard = InlineKeyboardBuilder()
             keyboard.add(types.InlineKeyboardButton(text="Original joke", callback_data=f"original_joke_{m.id}"))
-            await message.reply(t.text, reply_markup=keyboard)
+            await message.reply(t.text, reply_markup=keyboard.as_markup())
         except Exception as e:  # Запасной переводчик
             print(get_full_class_name(e), e)
-            keyboard = types.InlineKeyboardMarkup()
+            keyboard = InlineKeyboardBuilder()
             keyboard.add(types.InlineKeyboardButton(text="Original joke", callback_data=f"original_joke_{m.id}"))
-            await message.reply(translation(joke_to_translate, message.from_user.language_code), reply_markup=keyboard)
+            translated_text = await translation(joke_to_translate, message.from_user.language_code)
+            await message.reply(translated_text, reply_markup=keyboard.as_markup())
 
 
-@dp.callback_query_handler(lambda c: c.data.startswith('original_joke_'))
-async def original_joke(call: types.CallbackQuery):
+# @dp.callback_query(Text(str(lambda c: c.data.startswith('original_joke_'))))
+@dp.callback_query(F.text(startswith='original_joke_'))
+async def original_joke(callback: types.CallbackQuery):
     """Функция меняет переведённую шутку на записанную в базу данных."""
-    with suppress(MessageNotModified):
-        joke_id = call.data.split('_')[-1]
+    with suppress(TelegramBadRequest):
+        joke_id = callback.data.split('_')[-1]
         Session = sessionmaker(bind=engine)
         session = Session()
         joke = session.query(Joke).filter(Joke.id == joke_id).one()
         message_text = joke.joke
-        await call.message.edit_text(message_text, parse_mode=types.ParseMode.HTML)
-        await call.answer()
+        await callback.message.edit_text(message_text, parse_mode="HTML")
+        await callback.answer()
 
 
-@dp.message_handler(commands=['add_joke'])
-async def add_joke(message: types.Message):
+@dp.message(Command('add_joke'))
+async def add_joke(message: types.Message, command: CommandObject):
     """Функция добавляет шутку в базу данных."""
     from sqlalchemy.orm import sessionmaker
     from joke_check import joke_check
     Session = sessionmaker(bind=engine)
     session = Session()
-    s = message.get_args()
+    s = command.args
     if not s:
         if message.from_user.language_code == 'ru':
             await message.reply('Шутка не передана.')
@@ -188,7 +190,7 @@ async def add_joke(message: types.Message):
                 await message.reply('The joke has been added to the database and will be moderated.')
 
 
-@dp.message_handler(commands=['capybara'])
+@dp.message(Command('capybara'))
 async def send_random_capybara(message: types.Message):
     """Вывод изображения капибары."""
     import requests
@@ -213,11 +215,11 @@ async def send_random_capybara(message: types.Message):
         # Отправка сообщения с фотографией и информацией об авторе
         await bot.send_photo(chat_id=message.from_user.id, photo=photo_url,
                              caption=f'Photo by {photographer_name} on <a href="https://unsplash.com/">Unsplash</a>.',
-                             reply_to_message_id=message.message_id, parse_mode=types.ParseMode.HTML)
+                             reply_to_message_id=message.message_id, parse_mode="HTML")
 
     except Exception as e:  # Если произошла ошибка, то выводим заранее заготовленное изображение
         print(e)
-        photo = open('capybara.png', 'rb')
+        photo = FSInputFile('capybara.png', 'rb')
         if message.from_user.language_code == 'ru':
             c = 'Изображения не нашлись, но есть такая картинка капибары в космосе.'
         else:
@@ -225,7 +227,7 @@ async def send_random_capybara(message: types.Message):
         await bot.send_photo(message.from_user.id, photo=photo, caption=c, reply_to_message_id=message.message_id)
 
 
-@dp.message_handler(commands=['comp_info'])
+@dp.message(Command('comp_info'))
 async def comp_info(message: types.Message):
     """Вывод информации о системе, на которой запущена программа."""
     from about_s import creating_file, await_info, correct_size
@@ -241,8 +243,8 @@ async def comp_info(message: types.Message):
                           \t- Размер: {correct_size(os.path.getsize(os.path.join(".", "j.db")))}\n'))
 
 
-@dp.message_handler(commands=['restart'], user_id=ID)
-async def restart(message: types.Message):
+@dp.message(Command('restart'))
+async def restart(message: types.Message, user_id=ID):
     """Нужно запускать программу с помощью командной строки или терминала"""
     import sys
     import subprocess
@@ -255,18 +257,12 @@ async def restart(message: types.Message):
     sys.exit()
 
 
-# async def main():
-#     while True:
-#         await read_bans()
-#         print(ban_id)
-#         await asyncio.sleep(10)
-#
-# if __name__ == '__main__':
-#     loop = asyncio.get_event_loop()
-#     loop.create_task(main())
-#     executor.start_polling(dp)
+async def main():
+    dp.include_router(start.router)
+    dp.include_router(bansrouter.router)
+    dp.callback_query.outer_middleware(BansMiddleware())
+    await bot.delete_webhook(drop_pending_updates=True)
+    await dp.start_polling(bot)
 
-if __name__ == '__main__':
-    from filters import dp
-
-    executor.start_polling(dp, skip_updates=True)
+if __name__ == "__main__":
+    asyncio.run(main())

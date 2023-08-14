@@ -68,7 +68,7 @@ def await_info(dict_info):
                 if elem == 'system':
                     s += f"[+] Информация о системе\n\
                           \t- Имя компьютера: {dict_info['info'][item][elem]['comp_name']}\n\
-                          \t- Опереционная система: {dict_info['info'][item][elem]['os_name']}\n\
+                          \t- Операционная система: {dict_info['info'][item][elem]['os_name']}\n\
                           \t- Сборка: {dict_info['info'][item][elem]['version']}\n\
                           \t- Архитектура: {dict_info['info'][item][elem]['machine']}\n"
                 if elem == 'processor':
