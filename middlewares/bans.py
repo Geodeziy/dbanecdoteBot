@@ -2,7 +2,7 @@ from typing import Callable, Dict, Any, Awaitable
 from aiogram import BaseMiddleware, types
 from aiogram.types import TelegramObject, Update, Message, CallbackQuery
 
-ban_id = [1922763311]
+ban_id = [1]
 
 
 class BansMiddlewareI(BaseMiddleware):
